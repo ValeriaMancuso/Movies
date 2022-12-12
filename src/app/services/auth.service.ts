@@ -1,7 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import {  map, tap } from 'rxjs/operators';
-import {BehaviorSubject} from 'rxjs'
+import {BehaviorSubject} from 'rxjs';
+import { Router } from '@angular/router';
 
 export interface AuthData {
   accessToken: string,
@@ -32,7 +33,7 @@ export class AuthService {
 
 
   path: string = 'http://localhost:4201/api'
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, private router: Router) { }
 
   signUp(user: {email: string, password:string, name: string}){
     return this.http.post<AuthData>(`${this.path}/users`, user);
@@ -45,5 +46,12 @@ export class AuthService {
       localStorage.setItem('user', JSON.stringify(data))
       this.user = data.user;
     }));
+  }
+
+  logout() {
+    this.authSubject.next(null);
+    localStorage.removeItem('user')
+    this.router.navigate(['/login'])
+
   }
 }
