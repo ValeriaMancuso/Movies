@@ -3,6 +3,8 @@ import { Injectable } from '@angular/core';
 import {  map, tap } from 'rxjs/operators';
 import {BehaviorSubject} from 'rxjs';
 import { Router } from '@angular/router';
+import { JwtHelperService } from '@auth0/angular-jwt';
+
 
 export interface AuthData {
   accessToken: string,
@@ -26,6 +28,8 @@ export class AuthService {
   authSubject  = new BehaviorSubject<null | AuthData>(null);
   user$ = this.authSubject.asObservable()
   isLoggedIn$ = this.user$.pipe(map(u=>!!u))
+  jwtHelper = new JwtHelperService();
+  timeoutLogout: any;
 
 
   user! : {id: number, email: string };
@@ -33,7 +37,9 @@ export class AuthService {
 
 
   path: string = 'http://localhost:4201/api'
-  constructor(private http: HttpClient, private router: Router) { }
+  constructor(private http: HttpClient, private router: Router) {
+    this.restore()
+   }
 
   signUp(user: {email: string, password:string, name: string}){
     return this.http.post<AuthData>(`${this.path}/users`, user);
@@ -52,6 +58,22 @@ export class AuthService {
     this.authSubject.next(null);
     localStorage.removeItem('user')
     this.router.navigate(['/login'])
+    if (this.timeoutLogout) {
+      clearTimeout(this.timeoutLogout)
+    }
+  }
+
+  restore() {
+    const user = localStorage.getItem('user');
+    if (!user) {
+      return;
+    }
+    const userdata: AuthData = JSON.parse(user);
+    if (this.jwtHelper.isTokenExpired(userdata.accessToken)) {
+      return
+    }
+    this.authSubject.next(userdata)
+
 
   }
 }
